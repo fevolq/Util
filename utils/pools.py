@@ -24,6 +24,8 @@ def execute_thread(func, args_list, pools: int = 4, force_pool: bool = False):
     """
     if pools > THREAD_POOL_SIZE and not force_pool:
         pools = THREAD_POOL_SIZE
+    if len(args_list) <= pools:
+        pools = len(args_list)
     thread_pool = threadpool.ThreadPool(pools)
     result_list = [None] * len(args_list)
 
@@ -57,6 +59,8 @@ def execute_event(func, args_list, pools=4, force_pool=False):
 
     if pools > GEVENT_POOL_SIZE and not force_pool:
         pools = GEVENT_POOL_SIZE
+    if len(args_list) <= pools:
+        pools = len(args_list)
     gevent_pool = gevent.pool.Pool(pools)
 
     def tmp_f(item):
