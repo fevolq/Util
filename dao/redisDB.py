@@ -1,4 +1,4 @@
-#!-*coding:utf-8 -*-
+#!-*- coding:utf-8 -*-
 # python3.7
 # CreateTime: 2022/10/27 16:54
 # FileName:

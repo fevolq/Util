@@ -1,4 +1,4 @@
-#!-*coding:utf-8 -*-
+#!-*- coding:utf-8 -*-
 # python3.7
 # CreateTime: 2022/10/18 14:49
 # FileName: 日志初始化

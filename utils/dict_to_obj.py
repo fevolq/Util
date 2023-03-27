@@ -1,4 +1,4 @@
-#!-*-coding:utf-8 -*-
+#!-*- coding:utf-8 -*-
 # python3.7
 # Create time: 2022/10/14 15:37
 # Filename: 字典转换为对象

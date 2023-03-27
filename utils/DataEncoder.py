@@ -1,4 +1,4 @@
-#!-*coding:utf-8 -*-
+#!-*- coding:utf-8 -*-
 # python3.7
 # CreateTime: 2022/10/17 17:38
 # FileName: json数据格式转换

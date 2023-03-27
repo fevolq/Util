@@ -1,4 +1,4 @@
-#!-*-coding:utf-8 -*-
+#!-*- coding:utf-8 -*-
 # python3.7
 # Create time: 2022/10/11 14:10
 # Filename: 连接池
@@ -148,7 +148,6 @@ def get_coon(mode: str = 'mysql', **kwargs):
 
 
 def close_pool(key=None):
-    print('关闭数据库')
     return PoolDB.close_pool(key=key)
 
 

@@ -1,6 +1,5 @@
-#!-*-coding:utf-8 -*-
+#!-*- coding:utf-8 -*-
 # python3.7
-# @Author: F___Q
 # Create time: 2022/10/5 16:36
 # Filename:
 
