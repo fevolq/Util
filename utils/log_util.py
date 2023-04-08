@@ -7,7 +7,7 @@ import logging
 import logging.handlers
 import os
 
-import colors
+from utils import colors
 
 
 def init_logging(filename,

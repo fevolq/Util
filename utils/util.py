@@ -8,6 +8,7 @@ import functools
 import hashlib
 import logging
 import os
+import platform
 import random
 import time
 import traceback
@@ -144,3 +145,7 @@ def error_alarm(ignore_except_list: List = [], raise_error: bool = True, alarm_f
             return res
         return decorated_func
     return do
+
+
+def is_linux():
+    return platform.system().lower() == 'linux'
