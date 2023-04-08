@@ -11,6 +11,9 @@ import pika
 class RabbitMQ:
 
     host = 'localhost'
+    port = 5672
+    username = 'guest'
+    password = 'root'
 
     def __init__(self, queue_name, **options):
         self.queue_name = queue_name
@@ -24,7 +27,15 @@ class RabbitMQ:
         self._prepare()
 
     def _prepare(self):
-        self.conn = pika.BlockingConnection(pika.ConnectionParameters(self.host))
+        credentials = pika.PlainCredentials(self.username, self.password)
+        options = {
+            'host': self.host,
+            'port': self.port,
+            'virtual_host': '/',
+        }
+        if self.username:
+            options.update({'credentials': credentials})
+        self.conn = pika.BlockingConnection(pika.ConnectionParameters(**options))
         self.channel = self.conn.channel()
         self.channel.queue_declare(queue=self.queue_name, durable=self.durable)
         self.channel.basic_qos(prefetch_count=self.prefetch_count)
