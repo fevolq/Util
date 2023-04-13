@@ -118,32 +118,37 @@ def remove_dir(path):
         os.remove(path)
 
 
-def error_alarm(ignore_except_list: List = [], raise_error: bool = True, alarm_func: dict = None):
+def catch_error(*args, ignore_except_list: List = None, raise_error: bool = True, callback=None, **kwargs):
     """
-    异常告警装饰器
+    异常捕获
+    :param args: 回调函数参数
     :param ignore_except_list: 忽略的异常类型
     :param raise_error: 是否推出异常
-    :param alarm_func: 异常发生时的告警处理。{func: ..., args: [], kwargs: {}}
+    :param callback: 回调函数
+    :param kwargs: 回调函数参数
     :return:
     """
+    ignore_except_list = [] or ignore_except_list
+
     def do(func):
         @functools.wraps(func)
-        def decorated_func(*args, **kwargs):
+        def decorated_func(*attr, **options):
             res = None
             try:
-                res = func(*args, **kwargs)
-            except (*ignore_except_list, ):
+                res = func(*attr, **options)
+            except (*ignore_except_list,):
                 pass
             except Exception as e:
-                if alarm_func is not None:
-                    # 报警
+                if callback is not None:
                     logging.error(e)
                     logging.error(traceback.format_exc())
-                    alarm_func['func'](*alarm_func.get('args', []), **alarm_func.get('kwargs', {}))
+                    callback(*args, **kwargs)
                 if raise_error:
                     raise Exception
             return res
+
         return decorated_func
+
     return do
 
 
