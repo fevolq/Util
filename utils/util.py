@@ -128,7 +128,7 @@ def catch_error(*args, ignore_except_list: List = None, raise_error: bool = True
     :param kwargs: 回调函数参数
     :return:
     """
-    ignore_except_list = [] or ignore_except_list
+    ignore_except_list = ignore_except_list if ignore_except_list else []
 
     def do(func):
         @functools.wraps(func)
