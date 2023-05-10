@@ -39,6 +39,41 @@ def time2str(t=None, fmt="%Y-%m-%d %H:%M:%S") -> str:
     return time.strftime(fmt, time.localtime(t))
 
 
+def str2time(t=None, fmt="%Y-%m-%d %H:%M:%S"):
+    """
+    字符串转换为时间戳
+    :param t:
+    :param fmt:
+    :return:
+    """
+    if t is None:
+        t = time.localtime()
+        fmt = "%Y-%m-%d %H:%M:%S"
+    time_obj = datetime.datetime.strptime(t, fmt)
+    return time_obj.timestamp()
+
+
+def get_delay_date(date_str: str = '', delay: int = 0, date_type='str'):
+    """
+    获取指定日期的几日前或后的日期
+    :param date_str: 日期，默认为当前日期。
+    :type date_str: 2020-01-01
+    :param delay: 间隔天数。正数为往后，负数为往前。
+    :type delay: int
+    :param date_type: 返回类型
+    :type date_type: str、datetime
+    :return:
+    :rtype:
+    """
+    date_str = date_str or str(datetime.datetime.now().date())
+    delay_date = datetime.datetime.strptime(date_str, '%Y-%m-%d') + datetime.timedelta(days=delay)
+    if date_type == 'str':
+        return datetime.datetime.strftime(delay_date, '%Y-%m-%d')
+    elif date_type == 'datetime':
+        return delay_date
+    raise Exception('error date_type')
+
+
 def hash_list(dict_list: List[dict], hash_field: str) -> list:
     """
     数据的hash值，用于判断唯一
