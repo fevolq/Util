@@ -3,17 +3,51 @@
 # CreateTime: 2022/11/4 18:15
 # FileName:
 
+import concurrent.futures
+
 import threadpool
 import gevent
 from gevent.pool import Pool
 from gevent import monkey
-
 
 THREAD_POOL_SIZE = 4
 GEVENT_POOL_SIZE = 4
 
 
 def execute_thread(func, args_list, pools: int = 4, force_pool: bool = False):
+    """
+    线程池
+    :param func: 单线程的执行方法
+    :param args_list: 单线程的参数组成的数组。[[(args1, args2,), {'key1': value1, 'key2': value2}], ]
+    :param pools: 线程池数量
+    :param force_pool: 当pools大于设定的最大限制时，是否强制使用pools
+    :return:
+    """
+    # 获取 max_workers
+    if pools > THREAD_POOL_SIZE and not force_pool:
+        pools = THREAD_POOL_SIZE
+    if len(args_list) <= pools:
+        pools = len(args_list)
+
+    # 解析参数
+    def get_params(params):
+        item_args = params[0] if any([isinstance(params[0], tuple), isinstance(params[0], list)]) else []
+        item_kwargs = params[-1] if isinstance(params[-1], dict) else {}
+        return item_args, item_kwargs
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=pools) as executor:
+        futures = []
+        for i in range(len(args_list)):
+            args, kwargs = get_params(args_list[i])
+            future = executor.submit(func, *args, **kwargs)
+            futures.append(future)
+
+        # 获取任务的结果
+        result = [future.result() for future in futures]
+    return result
+
+
+def execute_thread_(func, args_list, pools: int = 4, force_pool: bool = False):
     """
     多线程
     :param func: 单线程的执行方法
@@ -55,7 +89,7 @@ def execute_event(func, args_list, pools=4, force_pool=False):
     :param force_pool: 当pools大于设定的最大限制时，是否强制使用pools
     :return:
     """
-    monkey.patch_socket()       # 识别IO阻塞
+    monkey.patch_socket()  # 识别IO阻塞
 
     if pools > GEVENT_POOL_SIZE and not force_pool:
         pools = GEVENT_POOL_SIZE
