@@ -12,7 +12,6 @@ import platform
 import random
 import time
 import traceback
-import typing
 import uuid
 from typing import List, Union, Callable
 
@@ -81,7 +80,7 @@ def hash_list(dict_list: List[dict], hash_field: str) -> list:
     return arr
 
 
-def md5(s: typing.Union[str, bytes]) -> str:
+def md5(s: Union[str, bytes]) -> str:
     """md5"""
     if isinstance(s, str):
         s = s.encode(encoding='UTF-8')
