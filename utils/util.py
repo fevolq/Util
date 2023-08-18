@@ -14,18 +14,19 @@ import time
 import traceback
 import typing
 import uuid
-from typing import List
+from typing import List, Union, Callable
 
 import pytz
 
 
-def asia_local_time(fmt="%Y-%m-%d %H:%M:%S"):
+def asia_local_time(fmt="%Y-%m-%d %H:%M:%S", tz="Asia/Shanghai"):
     """
     本地时间
     :param fmt:
+    :param tz:
     :return:
     """
-    return datetime.datetime.strftime(datetime.datetime.now(pytz.timezone('Asia/Shanghai')), fmt)
+    return datetime.datetime.strftime(datetime.datetime.now(pytz.timezone(tz)), fmt)
 
 
 def time2str(t=None, fmt="%Y-%m-%d %H:%M:%S") -> str:
@@ -35,43 +36,31 @@ def time2str(t=None, fmt="%Y-%m-%d %H:%M:%S") -> str:
     :param fmt:
     :return:
     """
-    t = time.time() if t is None else t
-    return time.strftime(fmt, time.localtime(t))
+    return time.strftime(fmt, time.localtime(time.time() if t is None else t))
 
 
-def str2time(t=None, fmt="%Y-%m-%d %H:%M:%S"):
+def str2time(t=None, fmt="%Y-%m-%d %H:%M:%S") -> float:
     """
-    字符串转换为时间戳
-    :param t:
+    字符串转时间戳
+    :param t: 时间字符串
     :param fmt:
     :return:
     """
-    if t is None:
-        t = time.localtime()
-        fmt = "%Y-%m-%d %H:%M:%S"
-    time_obj = datetime.datetime.strptime(t, fmt)
-    return time_obj.timestamp()
+    return time.time() if t is None else time.mktime(time.strptime(t, fmt))
 
 
-def get_delay_date(date_str: str = '', delay: int = 0, date_type='str'):
+def get_delay_date(date_str: str = None, date_fmt="%Y-%m-%d", delay: int = 0) -> str:
     """
     获取指定日期的几日前或后的日期
     :param date_str: 日期，默认为当前日期。
-    :type date_str: 2020-01-01
+    :param date_fmt: date_str的格式
     :param delay: 间隔天数。正数为往后，负数为往前。
-    :type delay: int
-    :param date_type: 返回类型
-    :type date_type: str、datetime
-    :return:
-    :rtype:
+    :return: %Y-%m-%d
     """
-    date_str = date_str or str(datetime.datetime.now().date())
-    delay_date = datetime.datetime.strptime(date_str, '%Y-%m-%d') + datetime.timedelta(days=delay)
-    if date_type == 'str':
-        return datetime.datetime.strftime(delay_date, '%Y-%m-%d')
-    elif date_type == 'datetime':
-        return delay_date
-    raise Exception('error date_type')
+    if date_str is None:
+        date_str = str(datetime.datetime.now().date())
+    delay_date = datetime.datetime.strptime(date_str, date_fmt) + datetime.timedelta(days=delay)
+    return datetime.datetime.strftime(delay_date, "%Y-%m-%d")
 
 
 def hash_list(dict_list: List[dict], hash_field: str) -> list:
@@ -92,16 +81,20 @@ def hash_list(dict_list: List[dict], hash_field: str) -> list:
     return arr
 
 
-def random_string(length: int, choices: str = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') -> str:
-    """随机字符串"""
-    return ''.join(random.choice(choices) for _ in range(length))
-
-
 def md5(s: typing.Union[str, bytes]) -> str:
     """md5"""
     if isinstance(s, str):
         s = s.encode(encoding='UTF-8')
     return hashlib.md5(s).hexdigest()
+
+
+def hash256(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def random_string(length: int, choices: str = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') -> str:
+    """随机字符串"""
+    return ''.join(random.choice(choices) for _ in range(length))
 
 
 def gen_unique_str(key: str = None) -> str:
@@ -115,8 +108,8 @@ def timeit(func):
 
     @functools.wraps(func)
     def new_func(*args, **kwargs):
-        hash_ = ""      # hash(str(args)+str(kwargs))
-        print_str = f'===start {func.__name__} {hash_} , kwargs:{kwargs}.'
+        _hash = ""      # hash(str(args)+str(kwargs))
+        print_str = f'===start {func.__name__} {_hash} , kwargs:{kwargs}.'
         print(print_str)
         logging.info(print_str)
         start = time.time()
@@ -124,7 +117,7 @@ def timeit(func):
         ret = func(*args, **kwargs)
 
         ms = 1000 * (time.time() - start)
-        print_str = f'===end {func.__name__} {hash_} {ms}ms, kwargs:{kwargs}.'
+        print_str = f'===end {func.__name__} {_hash} {ms}ms, kwargs:{kwargs}.'
         print(print_str)
         logging.info(print_str)
 
@@ -153,17 +146,20 @@ def remove_dir(path):
         os.remove(path)
 
 
-def catch_error(*args, ignore_except_list: List = None, raise_error: bool = True, callback=None, **kwargs):
+def catch_error(ignore_errors: List[type(Exception)] = None, raise_error: bool = True,
+                callback: Callable = None, args: Union[list, tuple] = None, kwargs: dict = None):
     """
     异常捕获
-    :param args: 回调函数参数
-    :param ignore_except_list: 忽略的异常类型
+    :param ignore_errors: 忽略的异常类型
     :param raise_error: 是否推出异常
     :param callback: 回调函数
+    :param args: 回调函数参数
     :param kwargs: 回调函数参数
     :return:
     """
-    ignore_except_list = ignore_except_list if ignore_except_list else []
+    ignore_errors = ignore_errors or []
+    args = args or []
+    kwargs = kwargs or {}
 
     def do(func):
         @functools.wraps(func)
@@ -171,15 +167,14 @@ def catch_error(*args, ignore_except_list: List = None, raise_error: bool = True
             res = None
             try:
                 res = func(*attr, **options)
-            except (*ignore_except_list,):
+            except (*ignore_errors,):
                 pass
             except Exception as e:
                 if callback is not None:
-                    logging.error(e)
                     logging.error(traceback.format_exc())
                     callback(*args, **kwargs)
                 if raise_error:
-                    raise Exception
+                    raise e
             return res
 
         return decorated_func
