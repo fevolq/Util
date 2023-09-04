@@ -10,6 +10,7 @@ import logging
 import os
 import platform
 import random
+import string
 import time
 import traceback
 import uuid
@@ -91,9 +92,16 @@ def hash256(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def random_string(length: int, choices: str = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') -> str:
+def random_string(
+    length: int,
+    is_digit: bool = True,
+):
     """随机字符串"""
-    return ''.join(random.choice(choices) for _ in range(length))
+    if is_digit:
+        all_char = string.digits
+    else:
+        all_char = string.ascii_letters + string.digits
+    return "".join(random.sample(all_char, length))
 
 
 def gen_unique_str(key: str = None) -> str:
