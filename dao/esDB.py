@@ -7,8 +7,14 @@ from dao import poolDB, db, config, db_exception
 
 
 class Elasticsearch:
+    default_conf = {
+        'host': config.ES_HOST,
+        'port': config.ES_PORT,
+        'user': config.ES_USER,
+        'password': config.ES_PWD,
+    }
 
-    def __init__(self, db_conf, use_pool) -> None:
+    def __init__(self, db_conf, *, use_pool) -> None:
         if use_pool:
             self.__conn = poolDB.get_coon(mode='elasticsearch', db_conf=db_conf)
         else:
@@ -43,19 +49,30 @@ class Elasticsearch:
         return res
 
 
+def es_obj(db_conf: dict = None, *, use_pool: bool = True):
+    db_config = Elasticsearch.default_conf
+    if db_conf is not None:
+        db_config.update(db_conf)
+
+    return Elasticsearch(db_config, use_pool=use_pool)
+
+
 def execute(
-    index_name: str, action: str, *args,
-    db_conf: dict = None,
-    use_pool=False, **kwargs,
+        index_name: str, action: str, *args,
+        db_conf: dict = None,
+        use_pool=False, **kwargs,
 ):
-    if db_conf is None:
-        db_conf = {
-            'host': config.ES_HOST,
-            'port': config.ES_PORT,
-            'user': config.ES_USER,
-            'password': config.ES_PWD,
-        }
-    es = Elasticsearch(db_conf, use_pool)
+    """
+
+    :param index_name: 索引名
+    :param action: 执行动作（方法str）
+    :param args:
+    :param db_conf: 数据库配置。格式参考 Elasticsearch.default_conf
+    :param use_pool: 是否使用池
+    :param kwargs:
+    :return:
+    """
+    es = es_obj(db_conf, use_pool=use_pool)
     return es.execute(index_name, action, *args, **kwargs)
 
 

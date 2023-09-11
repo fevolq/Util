@@ -2,13 +2,20 @@
 # python3.7
 # CreateTime: 2022/10/27 16:54
 # FileName:
+from typing import Union
 
 from dao import poolDB, db, config, db_exception
 
 
 class Redis:
+    default_conf = {
+        'host': config.REDIS_HOST,
+        'port': config.REDIS_PORT,
+        'password': config.REDIS_PWD,
+    }
+    default_db = 0
 
-    def __init__(self, db_name, db_conf, use_pool) -> None:
+    def __init__(self, db_name, db_conf, *, use_pool) -> None:
         if use_pool:
             self.__conn = poolDB.get_coon(mode='redis', db_name=db_name, db_conf=db_conf)
         else:
@@ -35,28 +42,38 @@ class Redis:
         return res
 
 
-def redis_obj(
-    db_name: int = None, db_conf: dict = None,
-    use_pool: bool = True,
-):
-    if db_name is None:
-        db_name = 0
-    else:
-        db_name = config.REDIS_DB.get(db_name, db_name)
-    if db_conf is None:
-        db_conf = {
-            'host': config.REDIS_HOST,
-            'port': config.REDIS_PORT,
-            'password': config.REDIS_PWD,
-        }
-    return Redis(db_name, db_conf, use_pool)
+def redis_obj(db_name: Union[int, str] = Redis.default_db, *, db_conf: dict = None, use_pool: bool = True):
+    """
+
+    :param db_name: 库名。int 或 config中已有的命名定义
+    :param db_conf: 数据库配置。格式参考 Redis.default_conf
+    :param use_pool: 是否使用连接池
+    :return:
+    """
+    db_name = config.REDIS_DB.get(db_name, db_name)
+
+    db_config = Redis.default_conf
+    if db_conf is not None:
+        db_config.update(db_conf)
+
+    return Redis(db_name, db_config, use_pool=use_pool)
 
 
 def execute(
-    action: str, *args,
-    db_name: int = None, db_conf: dict = None,
-    use_pool=True, **kwargs,
+        action: str, *args,
+        db_name: Union[int, str] = Redis.default_db, db_conf: dict = None,
+        use_pool=True, **kwargs,
 ):
+    """
+
+    :param action: 执行动作（方法str）
+    :param args:
+    :param db_name: 库名。int 或 config中已有的命名定义
+    :param db_conf: 数据库配置。格式参考 Redis.default_conf
+    :param use_pool: 是否使用连接池
+    :param kwargs:
+    :return:
+    """
     redis = redis_obj(db_name=db_name, db_conf=db_conf, use_pool=use_pool)
     return redis.execute(action, *args, **kwargs)
 
