@@ -48,6 +48,22 @@ def init_logging(filename,
             logging.getLogger().addHandler(error_file_handler)
 
 
+def get_logger(name, level):
+    logger = logging.getLogger(name)
+
+    logger.setLevel(level)
+
+    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s : %(message)s')
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(console_handler)
+
+    return logger
+
+
 def raise_exception(exception_str):
     raise Exception(logging.log(logging.ERROR, colors.normal_magenta(exception_str)))
 
