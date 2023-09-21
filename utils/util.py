@@ -19,7 +19,7 @@ from typing import List, Union, Callable
 import pytz
 
 
-def now_time(*, fmt: str = "%Y-%m-%d %H:%M:%S", tz: str = "Asia/Shanghai"):
+def now_time(*, fmt: str = "%Y-%m-%d %H:%M:%S", tz: str = "Asia/Shanghai") -> str:
     return datetime.datetime.strftime(datetime.datetime.now(pytz.timezone(tz)), fmt)
 
 
