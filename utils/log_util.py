@@ -10,7 +10,7 @@ import os
 from utils import colors
 
 
-def init_logging(filename,
+def init_logging(filename='',
                  file_level=logging.DEBUG,
                  error_level=logging.ERROR,
                  stream_level=logging.DEBUG,
