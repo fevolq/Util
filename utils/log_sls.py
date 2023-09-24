@@ -63,7 +63,7 @@ class LogSLS:
         :return:
         """
         try:
-            now = util.asia_local_time()
+            now = util.now_time()
 
             # 元数据
             metadata = {
