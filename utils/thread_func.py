@@ -78,7 +78,7 @@ class ThreadQueue(threading.Thread):
             'kwargs': kwargs,
         }
         try:
-            self.queue.put(data)
+            ThreadQueue.queue.put(data)
         except Exception as e:
             logging.exception(e)
 

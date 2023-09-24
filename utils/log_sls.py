@@ -36,7 +36,7 @@ class LogSLS:
     def __init__(self): ...
 
     def __repr__(self):
-        return self.__project
+        return LogSLS.__project
 
     @staticmethod
     def save_mongo(data):
