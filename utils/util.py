@@ -187,8 +187,9 @@ def catch_error(ignore_errors: List[type(Exception)] = None, raise_error: bool =
             except (*ignore_errors,):
                 pass
             except Exception as e:
+                logging.error(f'{func.__name__}: {str(e)}')
+                logging.exception(traceback.format_exc())
                 if callback is not None:
-                    logging.error(traceback.format_exc())
                     callback(*args, **kwargs)
                 if raise_error:
                     raise e
