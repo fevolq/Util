@@ -10,17 +10,24 @@ from typing import Union
 
 class RateLimiter:
     """
-    频率限制器
+    频率限制器：一定时间段内最大执行次数
     """
 
-    def __init__(self, max_times: int, time_window: Union[int, float], *, name='',
-                 offset: Union[int, float] = 0, loop=True):
+    def __init__(
+            self,
+            max_times: int,
+            time_window: Union[int, float],
+            *,
+            name='',
+            offset: Union[int, float] = 0,
+            loop=True,
+    ):
         """
 
-        :param max_times: 最大频率
+        :param max_times: 最大次数
         :param time_window: 频率的时间窗口（s）
         :param name:
-        :param offset: 偏差（加锁至功能方法的时间差）
+        :param offset: 偏差（加锁至开始功能方法的时间差）
         :param loop: 遇到限制时，是否自循环等待
         """
         self.max_times = max_times
@@ -36,17 +43,16 @@ class RateLimiter:
         return self.__name
 
     def __enter__(self):
-        while not self.acquire():
+        while not self.__acquire():
             if self.loop:
                 time.sleep(1)  # 等待1秒后重试
             else:
                 return None
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
-        pass
+    def __exit__(self, exc_type, exc_value, traceback): ...
 
-    def acquire(self):
+    def __acquire(self):
         current_time = time.time()
         self.timestamps = [t for t in self.timestamps if t >= current_time - self.time_window]
 

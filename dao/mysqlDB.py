@@ -28,11 +28,24 @@ class Mysql:
     def coon(self):
         return self.__conn
 
-    def execute(self, sql, args: list, **kwargs):
-        to_json = kwargs.pop('to_json') if 'to_json' in kwargs else True  # 是否进行json转换
-        raise_error = kwargs.pop('raise_error') if 'raise_error' in kwargs else True  # 是否扔出异常
-        log_key = kwargs.pop('log_key') if 'log_key' in kwargs else None
+    def execute(
+            self,
+            sql,
+            args: list,
+            *,
+            to_json: bool = True,
+            raise_error: bool = True,
+            log_key: str = '',
+    ):
+        """
 
+        :param sql:
+        :param args:
+        :param to_json: 是否进行json转换
+        :param raise_error: 是否扔出异常
+        :param log_key:
+        :return:
+        """
         res = {'result': None, 'success': True}
         with self.__conn as conn:
             try:
@@ -63,10 +76,22 @@ class Mysql:
 
         return res
 
-    def execute_many(self, sql_with_args_list: list, **kwargs):
-        to_json = kwargs.pop('to_json') if 'to_json' in kwargs else True  # 是否进行json转换
-        raise_error = kwargs.pop('raise_error') if 'raise_error' in kwargs else True  # 是否扔出异常
-        log_key = kwargs.pop('log_key') if 'log_key' in kwargs else None
+    def execute_many(
+            self,
+            sql_with_args_list: list,
+            *,
+            to_json: bool = True,
+            raise_error: bool = True,
+            log_key: str = '',
+    ):
+        """
+
+        :param sql_with_args_list:
+        :param to_json: 是否进行json转换
+        :param raise_error: 是否扔出异常
+        :param log_key:
+        :return:
+        """
 
         res = {'result': None, 'success': True}
         with self.__conn as conn:
@@ -179,7 +204,7 @@ def logging_sql(sql, args, key: str = None):
 if __name__ == "__main__":
     ...
 
-    # tmp_sql = 'show database;'
+    # tmp_sql = 'show databases;'
     # tmp_res = execute(tmp_sql, use_pool=True)
     # # tmp_res = execute_many([{'sql': sql}], use_pool=use_pool)
     #

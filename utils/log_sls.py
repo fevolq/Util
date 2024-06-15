@@ -13,39 +13,48 @@ import time
 from typing import Union
 import threading
 
-from utils import util, context, thread_func
-from dao import mongoDB, esDB
+from utils import util, thread_func, colors
+# from dao import mongoDB, esDB
+
+
+LOG_LEVEL = {
+    'debug': {'level': logging.DEBUG},
+    'info': {'level': logging.INFO},
+    'warning': {'level': logging.WARNING},
+    'error': {'level': logging.ERROR},
+}
 
 
 class LogSLS:
-
-    __project = 'template'      # 当前项目。每个项目应该唯一，数据会存储至对应的集合中。
+    __project = 'template'  # 当前项目。每个项目应该唯一，数据会存储至对应的集合中。
     __lock = threading.RLock()
+    __instance = None
 
     def __new__(cls, *args, **kwargs):
         # 构造单例
-        if hasattr(cls, 'instance'):
-            return cls.instance
+        if hasattr(cls, '__instance'):
+            return cls.__instance
 
         # 线程锁
         with cls.__lock:
             if not hasattr(cls, 'instance'):
-                cls.instance = super(LogSLS, cls).__new__(cls)
-            return cls.instance
+                cls.__instance = super(LogSLS, cls).__new__(cls)
+            return cls.__instance
 
-    def __init__(self): ...
+    def __init__(self):
+        ...
 
     def __repr__(self):
         return LogSLS.__project
 
     @staticmethod
     def save_mongo(data):
-        mongoDB.execute(LogSLS.__project, 'insert_one', data, db_name='log_sls', raise_error=False)
+        # mongoDB.execute(LogSLS.__project, 'insert_one', data, db_name='log_sls', raise_error=False)
         ...
 
     @staticmethod
     def save_es(data):
-        esDB.execute(LogSLS.__project.lower(), 'index', document=data, raise_error=False)
+        # esDB.execute(LogSLS.__project.lower(), 'index', document=data, raise_error=False)
         ...
 
     def save(self, data):
@@ -69,8 +78,8 @@ class LogSLS:
             metadata = {
                 'time': now,
                 'timestamp': time.time(),
-                'pid': os.getpid(),     # 当前进程id
-                'ppid': os.getppid(),   # 父进程id
+                'pid': os.getpid(),  # 当前进程id
+                'ppid': os.getppid(),  # 父进程id
             }
 
             # 日志主体内容，及其他自定义字段内容
@@ -79,18 +88,14 @@ class LogSLS:
             }
             log_content.update(kwargs)
 
-            task_id = context.get_args('task_id', None)
-            if task_id:
-                log_content['task_id'] = task_id
-
             doc = {
-                'project': LogSLS.__project,    # 当前项目
-                'level': level,                 # 日志等级
-                'metadata': metadata,           # 元数据
-                'module': mod,                  # 来源模块
-                'content': log_content,         # 日志内容
+                'project': LogSLS.__project,  # 当前项目
+                'level': level,  # 日志等级
+                'metadata': metadata,  # 元数据
+                'module': mod,  # 来源模块
+                'content': log_content,  # 日志内容
             }
-            self.save(doc)
+            # self.save(doc)    # 日志远程存储
 
         except Exception as e:
             logging.exception(e)
@@ -98,50 +103,44 @@ class LogSLS:
     @staticmethod
     def __logging(level, content: str, **kwargs):
         """日志运行展示"""
-        log_level = {
-            'info': logging.INFO,
-            'warning': logging.WARNING,
-            'debug': logging.DEBUG,
-            'error': logging.ERROR,
-        }
+        level = LOG_LEVEL[level]['level']
         kwargs_info = []
         for k, v in kwargs.items():
-            kwargs_info.append(f'{k}: {str(v)}')
-        if kwargs_info:
-            content = content + '; ' + '; '.join(kwargs_info)
-        logging.log(log_level[level], content)
+            kwargs_info.append(f'{colors.green(k)}{colors.grey(": ")}{colors.cyan(v)}')
+        kwargs_info.insert(0, content)
 
-    def info(self, mod: str, content, **kwargs):
+        logging.log(level, f'{colors.white(";")} '.join(kwargs_info))
+
+    def info(self, module: str, content, **kwargs):
         level = 'info'
-        self.__logging(level, content, **kwargs)
-        return self.__sls(mod, level, content, **kwargs)
+        self.__logging(level, f'[{module}] {content}', **kwargs)
+        return self.__sls(module, level, content, **kwargs)
 
-    def warning(self, mod: str, content, **kwargs):
+    def warning(self, module: str, content, **kwargs):
         level = 'warning'
-        self.__logging(level, content, **kwargs)
-        return self.__sls(mod, level, content, **kwargs)
+        self.__logging(level, f'[{module}] {content}', **kwargs)
+        return self.__sls(module, level, content, **kwargs)
 
-    def debug(self, mod: str, content, **kwargs):
+    def debug(self, module: str, content, **kwargs):
         level = 'debug'
-        self.__logging(level, content, **kwargs)
-        return self.__sls(mod, level, content, **kwargs)
+        self.__logging(level, f'[{module}] {content}', **kwargs)
+        return self.__sls(module, level, content, **kwargs)
 
-    def error(self, mod: str, content, **kwargs):
+    def error(self, module: str, content, **kwargs):
         level = 'error'
-        self.__logging(level, content, **kwargs)
-        return self.__sls(mod, level, content, **kwargs)
+        self.__logging(level, f'[{module}] {content}', **kwargs)
+        return self.__sls(module, level, content, **kwargs)
 
-    def exception(self, mod: str, content, **kwargs):
+    def exception(self, module: str, content, **kwargs):
         """错误堆栈"""
         level = 'exception'
         logging.exception(content)
         for k, v in kwargs.items():
             logging.exception(logging.INFO, f'{k} = {v}')
-        return self.__sls(mod, level, content, **kwargs)
+        return self.__sls(module, level, content, **kwargs)
 
 
-def get_sls():
-    return LogSLS()
+instance = LogSLS()
 
 
 def info(mod: str, content: str, **kwargs):
@@ -152,32 +151,32 @@ def info(mod: str, content: str, **kwargs):
     :param kwargs:
     :return
     """
-    return get_sls().info(mod, content, **kwargs)
+    return instance.info(mod, content, **kwargs)
 
 
 def debug(mod: str, content: str, **kwargs):
-    return get_sls().debug(mod, content, **kwargs)
+    return instance.debug(mod, content, **kwargs)
 
 
 def warning(mod: str, content: str, **kwargs):
-    return get_sls().warning(mod, content, **kwargs)
+    return instance.warning(mod, content, **kwargs)
 
 
 def error(mod: str, content: str, **kwargs):
-    return get_sls().error(mod, content, **kwargs)
+    return instance.error(mod, content, **kwargs)
 
 
 def exception(mod: str, content: str, **kwargs):
-    return get_sls().exception(mod, content, **kwargs)
+    return instance.exception(mod, content, **kwargs)
 
 
 if __name__ == '__main__':
-    import log_util
+    import log_init
 
-    log_util.init_logging('')
+    log_init.init_logging('')
+
 
     def execute():
-
         print('start')
 
         info('test', 'content_info', key='key_info', value='value_info')
@@ -186,6 +185,7 @@ if __name__ == '__main__':
         error('demo', 'content_error', key='key_error', value='value_error')
 
         print('end')
+
 
     execute()
 

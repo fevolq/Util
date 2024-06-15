@@ -3,7 +3,7 @@
 # CreateTime: 2022/11/4 18:06
 # FileName: 颜色
 
-BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE = range(30, 38)
+BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, GREY, WHITE = range(30, 39)
 
 # 加颜色函数
 colorfy = lambda bold, color, target: "\033[%d;%dm%s\033[0m" % (bold, color, target)
@@ -16,6 +16,7 @@ yellow = lambda target: colorfy(1, YELLOW, target)
 blue = lambda target: colorfy(1, BLUE, target)
 magenta = lambda target: colorfy(1, MAGENTA, target)
 cyan = lambda target: colorfy(1, CYAN, target)
+grey = lambda target: colorfy(1, GREY, target)
 white = lambda target: colorfy(1, WHITE, target)
 
 # 普通颜色函数
@@ -26,6 +27,7 @@ normal_yellow = lambda target: colorfy(0, YELLOW, target)
 normal_blue = lambda target: colorfy(0, BLUE, target)
 normal_magenta = lambda target: colorfy(0, MAGENTA, target)
 normal_cyan = lambda target: colorfy(0, CYAN, target)
+normal_grey = lambda target: colorfy(0, GREY, target)
 normal_white = lambda target: colorfy(0, WHITE, target)
 
 

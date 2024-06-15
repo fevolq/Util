@@ -5,42 +5,48 @@
 
 import json
 import sys
-import typing
 
 import requests
 
 
-def feishu_robot_msg(robot_url: str, content: typing.Union[dict, str], title=None):
-    """飞书 机器人消息"""
-    assert robot_url
-    try:
-        if not isinstance(content, str):
-            content = json.dumps(content, ensure_ascii=False)
+def feishu_robot_msg(url: str, text: str, *, title: str = None, href: dict = None, at: str = None):
+    """
+    飞书 机器人
+    :param url:
+    :param text: 内容
+    :param title: 标题
+    :param href: 超链接。{'href': '链接', 'text': '文本'}
+    :param at: @用户的user_id
+    :return:
+    """
+    assert url, '缺少 feishu robot url'
+    assert isinstance(text, str), 'text 必须为字符串'
 
-        msg = {
-            'title': title,
-            'content': [
-                [
-                    {
-                        'tag': 'text',
-                        'text': content
-                    }
-                ]
-            ]
-        }
+    content = {
+        'content': [
+            [{'tag': 'text', 'text': text}],
+        ],
+    }
+    if title:
+        content['title'] = title
 
-        data = {
+    content_list = content['content']
+    if href:
+        assert isinstance(href.get('href'), str) and isinstance(href.get('text'), str), 'href 格式错误'
+        content_list.append([{'tag': 'a', **href}])
+    if at:
+        content_list.append([{
+            "tag": "at",
+            "user_id": at,
+        }])
+
+    resp = requests.post(
+        url,
+        json={
             'msg_type': 'post',
-            'content': {
-                'post': {
-                    'zh-cn': msg
-                }
-            }
+            'content': json.dumps({'post': {'zh_cn': content}}, ensure_ascii=False),
         }
-        resp = requests.post(robot_url, json=data)
-        pass
-    except Exception:
-        pass
+    )
 
 
 class WinXin:
@@ -86,6 +92,7 @@ class WinXin:
 
 class ServerChan:
     """Server酱"""
+
     def __init__(self, key):
         self.key = key
 
@@ -108,7 +115,7 @@ class ServerChan:
         """
         check = [
             {'value': title, 'max': 32},
-            {'value': sys.getsizeof(title.encode('utf-8')), 'max': 32 * 1024},      # 32KB
+            {'value': sys.getsizeof(title.encode('utf-8')), 'max': 32 * 1024},  # 32KB
             {'value': short, 'max': 64},
         ]
         for item in check:
@@ -147,4 +154,4 @@ def chan_msg(title, content='', short=None, **options):
 if __name__ == '__main__':
     info_ = 'hello world\nhttps://www.baidu.com'
     url_ = ''
-    feishu_robot_msg(url_, info_, title='test')
+    feishu_robot_msg(url_, info_, title='【测试】标题', href={'href': 'https://www.baidu.com', 'text': '百度'})

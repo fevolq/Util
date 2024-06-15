@@ -10,10 +10,9 @@
 消费者：存储图片
 
 常规流程：读取图片、存储。循环执行，或多线程执行。时间 =（生产者 + 消费者）*n
-分解执行多线程：多线程执行生产者，再执行消费者。时间 =（生产者 * n + 消费者 * n）
-异步队列：消费者监听独队列，生产者的结果放入队列，两者的阻塞互不干扰。则理想状态 时间 = 生产者 * n +（最后一个）消费者
+分解执行多线程：多线程执行生产者，再执行消费者。时间 = max(生产者) + max(消费者)
+异步队列：消费者监听队列，生产者的结果放入队列，两者的阻塞互不干扰。时间 = max(生产者) + max(消费者)
 
-优化：若不在乎消费者的结果顺序，则使用多协程模式的生产者和消费者。
 """
 
 import logging
@@ -76,8 +75,11 @@ class AsyncQueue:
 
         def producer():
             for index in range(times):
-                args, kwargs = self.get_params(args_list[index])
-                data = callback(*args, **kwargs)
+                if args_list:
+                    args, kwargs = self.get_params(args_list[index])
+                    data = callback(*args, **kwargs)
+                else:
+                    data = callback()
                 self.q.put(data)
 
         self.__producer_thread = threading.Thread(target=producer)
@@ -168,7 +170,7 @@ class AsyncQueue:
 
     def run(self):
         assert self.__producer_thread, '请注册生产者：add_producer/add_producer_with_pool'
-        assert self.__consumer_thread, '请注册消费者：add_consumer'
+        assert self.__consumer_thread, '请注册消费者：add_consumer/add_consumer_with_pool'
 
         logging.info(f'异步队列：{self.name}——启动')
 
