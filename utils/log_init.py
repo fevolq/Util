@@ -57,10 +57,10 @@ def init_logging(filename='',
         CYAN = '\033[96m'
         WHITE = '\033[97m'
 
-    logging.addLevelName(logging.DEBUG, f"{Colors.WHITE}{logging.getLevelName(logging.DEBUG):<7}{Colors.RESET}")
-    logging.addLevelName(logging.INFO, f"{Colors.GREEN}{logging.getLevelName(logging.INFO):<7}{Colors.RESET}")
-    logging.addLevelName(logging.WARNING, f"{Colors.YELLOW}{logging.getLevelName(logging.WARNING):<7}{Colors.RESET}")
-    logging.addLevelName(logging.ERROR, f"{Colors.RED}{logging.getLevelName(logging.ERROR):<7}{Colors.RESET}")
+    logging.addLevelName(logging.DEBUG, f"|{Colors.WHITE}{logging.getLevelName(logging.DEBUG).center(7, ' ')}{Colors.RESET}|")
+    logging.addLevelName(logging.INFO, f"|{Colors.GREEN}{logging.getLevelName(logging.INFO).center(7, ' ')}{Colors.RESET}|")
+    logging.addLevelName(logging.WARNING, f"|{Colors.YELLOW}{logging.getLevelName(logging.WARNING).center(7, ' ')}{Colors.RESET}|")
+    logging.addLevelName(logging.ERROR, f"|{Colors.RED}{logging.getLevelName(logging.ERROR).center(7, ' ')}{Colors.RESET}|")
 
 
 def get_logger(name, level):
