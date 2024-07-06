@@ -15,28 +15,29 @@ class ThreadPool:
     """
 
     __lock = threading.RLock()
+    __instance = None
     __pools = 100
 
     def __new__(cls, *args, **kwargs):
         # 构造单例
-        if hasattr(cls, 'instance'):
-            return cls.instance
+        if cls.__instance:
+            return cls.__instance
 
         # 线程锁
         with cls.__lock:
-            if not hasattr(cls, 'instance'):
-                cls.instance = super(ThreadPool, cls).__new__(cls)
-            return cls.instance
+            if not cls.__instance:
+                cls.__instance = super().__new__(cls)
+            return cls.__instance
 
     def __init__(self):
-        self.executor = ThreadPoolExecutor(ThreadPool.__pools)
+        self._executor = ThreadPoolExecutor(ThreadPool.__pools)
 
     def submit(self, func, *args, **kwargs):
-        self.executor.submit(func, *args, **kwargs)
+        self._executor.submit(func, *args, **kwargs)
         # try:
-        #     self.executor.submit(func, *args, **kwargs)
+        #     self._executor.submit(func, *args, **kwargs)
         # except:
-        #     self.executor.shutdown(False)
+        #     self._executor.shutdown(False)
 
 
 class ThreadQueue(threading.Thread):
@@ -45,26 +46,27 @@ class ThreadQueue(threading.Thread):
     """
 
     __lock = threading.RLock()
-    queue = Queue()
+    __instance = None
+    _queue = Queue()
     is_start_thread = False
 
     def __new__(cls, *args, **kwargs):
         # 构造单例
-        if hasattr(cls, 'instance'):
-            return cls.instance
+        if cls.__instance:
+            return cls.__instance
 
         # 线程锁
         with cls.__lock:
-            if not hasattr(cls, 'instance'):
-                cls.instance = super(ThreadQueue, cls).__new__(cls)
-            return cls.instance
+            if not cls.__instance:
+                cls.__instance = super().__new__(cls)
+            return cls.__instance
 
     def __init__(self):
         threading.Thread.__init__(self)
 
     def run(self):
         while True:
-            data = ThreadQueue.queue.get()
+            data = self._queue.get()
             func = data['func']
             args = data['args']
             kwargs = data['kwargs']
@@ -78,7 +80,7 @@ class ThreadQueue(threading.Thread):
             'kwargs': kwargs,
         }
         try:
-            ThreadQueue.queue.put(data)
+            self._queue.put(data)
         except Exception as e:
             logging.exception(e)
 

@@ -12,7 +12,7 @@
 
     示例：
     {'a': {'=': 1}}  =>  a == 1
-    {'a': {'>': 0, '<': 10}}  =>  0 < a < 9
+    {'a': {'>': 0, '<': 10}}  =>  0 < a < 10
     {'a': [{'<': 0}, {'IN': [3, 6, 9]}]}  =>  a < 0 or a in [3, 6, 9]
 
 多字段校验：check_conditions
@@ -59,7 +59,7 @@ def check_one_col(row: dict, condition: dict) -> bool:
     与：{col: {op_1: value_1, op_2: 条件值}}
     或：{col: [op_condition_1, op_condition_1]}
     :param row:
-    :param condition: and: {'col': {'op': 'value', }}、 or: {'col': [{'op': 'value'}, ]}
+    :param condition: and: {'col': {'op': 'value', ...}}、 or: {'col': [{'op': 'value'}, ...]}
     :return: bool
     """
 
@@ -135,7 +135,7 @@ def check_conditions(row: dict, conditions: dict) -> bool:
         }
 
     condition1：
-    {'OR': [col_conditions_1, col_conditions_2]} 或 col_conditions_1
+    {'AND': [col_conditions_1, col_conditions_2]} 或 col_conditions_1
     最内层的条件格式为check_one_col的condition
     :param row:
     :param conditions:
@@ -168,8 +168,10 @@ if __name__ == '__main__':
     # test_one_col = {'a': {'!=': '[b]', '=': 1, 'IN': ["[a]", 2, 3]}}
     # print(check_one_col(data, test_one_col))
 
+    # # 多字段校验
     # (c==1) and ((a==b or a in [2, 'a', c]) or (b==1))     ==>  True
     test_1 = {'AND': [{'c': {'=': 1}}, {'OR': [{'a': [{'=': '[b]'}, {'IN': [2, 'a', '[c]']}]}, {'b': {'=': 1}}]}]}
+    test_1_2 = {'AND': [{'c': {'=': 1}}, {'OR': [{'OR': [{'a': {'=': '[b]'}}, {'a': {'IN': [2, 'a', '[c]']}}]}, {'b': {'=': 1}}]}]}
     # (c==1) and ((a==b or a in [2, 'a', 'c']) or (b==1))     ==>  False
     test_2 = {'AND': [{'c': {'=': 1}}, {'OR': [{'a': [{'=': '[b]'}, {'IN': [2, 'a', 'c']}]}, {'b': {'=': 1}}]}]}
     # (c==1) and ((a==b and a in [2, 'a', c]) or (b==1))     ==>  False
