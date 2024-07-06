@@ -1,173 +1,156 @@
 #!-*coding:utf-8 -*-
-# python3.7
-# CreateTime: 2022/11/28 18:55
 # FileName:
 
 """
-异步线程，可能造成数据丢失。
+log结构化。
+使用时：
+1. 针对不同项目，更改 LogSLS.__project
+2. 若需要存储，改变 LOG_SERVER 为实际的log服务地址（配套服务：https://github.com/fevolq/LogServer）
+3. 不包含logging初始化，若需要可参考__main__中的定义
 """
-import copy
+import datetime
 import logging
 import os
 import time
 from typing import Union
-import threading
 
-from utils import util, thread_func, colors
-# from dao import mongoDB, esDB
+import pytz
+import requests
 
+from utils import colors, thread_func
 
-LOG_LEVEL = {
+log_level = {
     'debug': {'level': logging.DEBUG},
     'info': {'level': logging.INFO},
     'warning': {'level': logging.WARNING},
     'error': {'level': logging.ERROR},
 }
+LOG_SERVER = ''
+TZ = 'Asia/Shanghai'
 
 
 class LogSLS:
-    __project = 'template'  # 当前项目。每个项目应该唯一，数据会存储至对应的集合中。
-    __lock = threading.RLock()
-    __instance = None
+    __project = 'Util'  # 当前项目。每个项目应该唯一，数据会存储至对应的集合中。
+    _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        # 构造单例
-        if hasattr(cls, '__instance'):
-            return cls.__instance
-
-        # 线程锁
-        with cls.__lock:
-            if not hasattr(cls, 'instance'):
-                cls.__instance = super(LogSLS, cls).__new__(cls)
-            return cls.__instance
-
-    def __init__(self):
-        ...
+    def __new__(cls):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __repr__(self):
-        return LogSLS.__project
+        return self.__project
 
-    @staticmethod
-    def save_mongo(data):
-        # mongoDB.execute(LogSLS.__project, 'insert_one', data, db_name='log_sls', raise_error=False)
-        ...
-
-    @staticmethod
-    def save_es(data):
-        # esDB.execute(LogSLS.__project.lower(), 'index', document=data, raise_error=False)
-        ...
-
-    def save(self, data):
-        thread_func.submit(self.save_mongo, copy.deepcopy(data), use_pool=False)
-        thread_func.submit(self.save_es, copy.deepcopy(data), use_pool=False)
-        ...
-
-    def __sls(self, mod: str, level: str, content: Union[str, int], **kwargs):
+    def __sls(self, __module__: str, level: str, __content__: Union[str, int], **kwargs):
         """
         sls日志服务的所需数据
-        :param mod: 所属模块
+        :param __module__: 所属模块
         :param level: 日志等级
-        :param content: 主体内容
+        :param __content__: 主体内容
         :param kwargs:
         :return:
         """
-        try:
-            now = util.now_time()
+        # 元数据
+        metadata = {
+            'time': datetime.datetime.strftime(datetime.datetime.now(pytz.timezone(TZ)), '%Y-%m-%d %H:%M:%S'),
+            'timestamp': time.time(),
+            'pid': os.getpid(),  # 当前进程id
+            'ppid': os.getppid(),  # 父进程id
+        }
 
-            # 元数据
-            metadata = {
-                'time': now,
-                'timestamp': time.time(),
-                'pid': os.getpid(),  # 当前进程id
-                'ppid': os.getppid(),  # 父进程id
-            }
+        # 日志主体内容，及其他自定义字段内容
+        log_content = {
+            '__content__': __content__,
+        }
+        log_content.update(kwargs)
 
-            # 日志主体内容，及其他自定义字段内容
-            log_content = {
-                'content': content,
-            }
-            log_content.update(kwargs)
+        doc = {
+            'project': LogSLS.__project,  # 当前项目
+            'level': level,  # 日志等级
+            'metadata': metadata,  # 元数据
+            'module': __module__,  # 来源模块
+            'doc': log_content,  # 日志内容
+        }
+        self.__save(doc)  # 日志存储
 
-            doc = {
-                'project': LogSLS.__project,  # 当前项目
-                'level': level,  # 日志等级
-                'metadata': metadata,  # 元数据
-                'module': mod,  # 来源模块
-                'content': log_content,  # 日志内容
-            }
-            # self.save(doc)    # 日志远程存储
+    @classmethod
+    def __save(cls, doc: dict):
+        def request():
+            if LOG_SERVER:
+                requests.post(f'{LOG_SERVER}/log/submit', json={'project': cls.__project, 'doc': doc})
 
-        except Exception as e:
-            logging.exception(e)
+        thread_func.submit(request, use_pool=False)
 
-    @staticmethod
-    def __logging(level, content: str, **kwargs):
+    @classmethod
+    def __logging(cls, level, __content__: str, **kwargs):
         """日志运行展示"""
-        level = LOG_LEVEL[level]['level']
-        kwargs_info = []
+        level = log_level[level]['level']
+
+        kwargs_info = [__content__]
         for k, v in kwargs.items():
+            if not isinstance(v, (str, int)):
+                v = str(v)
             kwargs_info.append(f'{colors.green(k)}{colors.grey(": ")}{colors.cyan(v)}')
-        kwargs_info.insert(0, content)
 
         logging.log(level, f'{colors.white(";")} '.join(kwargs_info))
 
-    def info(self, module: str, content, **kwargs):
+    def info(self, __module__: str, __content__, **kwargs):
         level = 'info'
-        self.__logging(level, f'[{module}] {content}', **kwargs)
-        return self.__sls(module, level, content, **kwargs)
+        self.__logging(level, f'[{__module__}] {__content__}', **kwargs)
+        return self.__sls(__module__, level, __content__, **kwargs)
 
-    def warning(self, module: str, content, **kwargs):
+    def warning(self, __module__: str, __content__, **kwargs):
         level = 'warning'
-        self.__logging(level, f'[{module}] {content}', **kwargs)
-        return self.__sls(module, level, content, **kwargs)
+        self.__logging(level, __content__, **kwargs)
+        return self.__sls(__module__, level, __content__, **kwargs)
 
-    def debug(self, module: str, content, **kwargs):
+    def debug(self, __module__: str, __content__, **kwargs):
         level = 'debug'
-        self.__logging(level, f'[{module}] {content}', **kwargs)
-        return self.__sls(module, level, content, **kwargs)
+        self.__logging(level, __content__, **kwargs)
+        return self.__sls(__module__, level, __content__, **kwargs)
 
-    def error(self, module: str, content, **kwargs):
+    def error(self, __module__: str, __content__, **kwargs):
         level = 'error'
-        self.__logging(level, f'[{module}] {content}', **kwargs)
-        return self.__sls(module, level, content, **kwargs)
+        self.__logging(level, __content__, **kwargs)
+        return self.__sls(__module__, level, __content__, **kwargs)
 
-    def exception(self, module: str, content, **kwargs):
+    def exception(self, __module__: str, __content__, **kwargs):
         """错误堆栈"""
         level = 'exception'
-        logging.exception(content)
+        logging.exception(__content__)
         for k, v in kwargs.items():
             logging.exception(logging.INFO, f'{k} = {v}')
-        return self.__sls(module, level, content, **kwargs)
+        return self.__sls(__module__, level, __content__, **kwargs)
 
 
 instance = LogSLS()
 
 
-def info(mod: str, content: str, **kwargs):
+def info(__module__: str, __content__: str, **kwargs):
     """
 
-    :param mod: 所属模块
-    :param content: 主体内容
+    :param __module__: 所属模块
+    :param __content__: 主体内容
     :param kwargs:
     :return
     """
-    return instance.info(mod, content, **kwargs)
+    return instance.info(__module__, __content__, **kwargs)
 
 
-def debug(mod: str, content: str, **kwargs):
-    return instance.debug(mod, content, **kwargs)
+def debug(__module__: str, __content__: str, **kwargs):
+    return instance.debug(__module__, __content__, **kwargs)
 
 
-def warning(mod: str, content: str, **kwargs):
-    return instance.warning(mod, content, **kwargs)
+def warning(__module__: str, __content__: str, **kwargs):
+    return instance.warning(__module__, __content__, **kwargs)
 
 
-def error(mod: str, content: str, **kwargs):
-    return instance.error(mod, content, **kwargs)
+def error(__module__: str, __content__: str, **kwargs):
+    return instance.error(__module__, __content__, **kwargs)
 
 
-def exception(mod: str, content: str, **kwargs):
-    return instance.exception(mod, content, **kwargs)
+def exception(__module__: str, __content__: str, **kwargs):
+    return instance.exception(__module__, __content__, **kwargs)
 
 
 if __name__ == '__main__':
