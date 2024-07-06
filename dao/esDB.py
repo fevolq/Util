@@ -41,7 +41,7 @@ class Elasticsearch:
                 result = getattr(coon, action)(index=index_name, *args, **kwargs)
                 res['result'] = result
             except Exception as e:
-                res['result'] = e
+                res['result'] = str(e)
                 res['success'] = False
                 if raise_error:
                     raise db_exception.DbException(e)

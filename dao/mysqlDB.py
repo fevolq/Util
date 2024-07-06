@@ -70,7 +70,7 @@ class Mysql:
             except Exception as e:
                 conn.rollback()
                 res['success'] = False
-                res['result'] = e
+                res['result'] = str(e)
                 if raise_error:
                     raise db_exception.DbException(e)
 
@@ -122,7 +122,7 @@ class Mysql:
             except Exception as e:
                 conn.rollback()
                 res['success'] = False
-                res['result'] = e
+                res['result'] = str(e)
                 if raise_error:
                     raise db_exception.DbException(e)
 
