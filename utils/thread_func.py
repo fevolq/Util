@@ -1,7 +1,5 @@
 #!-*- coding:utf-8 -*-
-# python3.7
-# CreateTime: 2022/12/21 18:03
-# FileName: 异步线程
+# FileName: 异步线程任务（非阻塞，并且不会阻塞主程序的退出）
 
 import logging
 import threading
@@ -15,19 +13,19 @@ class ThreadPool:
     """
 
     __lock = threading.RLock()
-    __instance = None
+    _instance = None
     __pools = 100
 
     def __new__(cls, *args, **kwargs):
         # 构造单例
-        if cls.__instance:
-            return cls.__instance
+        if cls._instance is not None:
+            return cls._instance
 
         # 线程锁
         with cls.__lock:
-            if not cls.__instance:
-                cls.__instance = super().__new__(cls)
-            return cls.__instance
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
 
     def __init__(self):
         self._executor = ThreadPoolExecutor(ThreadPool.__pools)
@@ -35,9 +33,9 @@ class ThreadPool:
     def submit(self, func, *args, **kwargs):
         self._executor.submit(func, *args, **kwargs)
         # try:
-        #     self._executor.submit(func, *args, **kwargs)
+        #     self.executor.submit(func, *args, **kwargs)
         # except:
-        #     self._executor.shutdown(False)
+        #     self.executor.shutdown(False)
 
 
 class ThreadQueue(threading.Thread):
@@ -46,23 +44,23 @@ class ThreadQueue(threading.Thread):
     """
 
     __lock = threading.RLock()
-    __instance = None
-    _queue = Queue()
+    _instance = None
     is_start_thread = False
 
     def __new__(cls, *args, **kwargs):
         # 构造单例
-        if cls.__instance:
-            return cls.__instance
+        if cls._instance is not None:
+            return cls._instance
 
         # 线程锁
         with cls.__lock:
-            if not cls.__instance:
-                cls.__instance = super().__new__(cls)
-            return cls.__instance
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
 
     def __init__(self):
         threading.Thread.__init__(self)
+        self._queue = Queue()
 
     def run(self):
         while True:
@@ -101,6 +99,14 @@ def get_queue_instance():
 
 
 def submit(func, *args, use_pool: bool = True, **kwargs):
+    """
+    提交任务
+    :param func:
+    :param args:
+    :param use_pool: 是否在线程池使用
+    :param kwargs:
+    :return:
+    """
     if use_pool:
         instance = get_pool_instance()
     else:
