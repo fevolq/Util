@@ -9,6 +9,7 @@ log结构化。
 3. 不包含logging初始化，若需要可参考__main__中的定义
 """
 import datetime
+import json
 import logging
 import os
 import time
@@ -17,7 +18,7 @@ from typing import Union
 import pytz
 import requests
 
-from utils import colors, thread_func
+from utils import colors, thread_func, DataEncoder
 
 log_level = {
     'debug': {'level': logging.DEBUG},
@@ -41,11 +42,11 @@ class LogSLS:
     def __repr__(self):
         return self.__project
 
-    def __sls(self, __module__: str, level: str, __content__: Union[str, int], **kwargs):
+    def __sls(self, __module__: str, __level__: str, __content__: Union[str, int], **kwargs):
         """
         sls日志服务的所需数据
         :param __module__: 所属模块
-        :param level: 日志等级
+        :param __level__: 日志等级
         :param __content__: 主体内容
         :param kwargs:
         :return:
@@ -66,7 +67,7 @@ class LogSLS:
 
         doc = {
             'project': LogSLS.__project,  # 当前项目
-            'level': level,  # 日志等级
+            'level': __level__,  # 日志等级
             'metadata': metadata,  # 元数据
             'module': __module__,  # 来源模块
             'doc': log_content,  # 日志内容
@@ -75,6 +76,9 @@ class LogSLS:
 
     @classmethod
     def __save(cls, doc: dict):
+        json_data = json.dumps(doc, cls=DataEncoder.ObjEncoder, ensure_ascii=False)
+        doc = json.loads(json_data)
+
         def request():
             if LOG_SERVER:
                 requests.post(f'{LOG_SERVER}/log/submit', json={'project': cls.__project, 'doc': doc})
@@ -82,9 +86,9 @@ class LogSLS:
         thread_func.submit(request, use_pool=False)
 
     @classmethod
-    def __logging(cls, level, __content__: str, **kwargs):
+    def __logging(cls, __level__, __content__: str, **kwargs):
         """日志运行展示"""
-        level = log_level[level]['level']
+        __level__ = log_level[__level__]['level']
 
         kwargs_info = [__content__]
         for k, v in kwargs.items():
@@ -92,35 +96,27 @@ class LogSLS:
                 v = str(v)
             kwargs_info.append(f'{colors.green(k)}{colors.grey(": ")}{colors.cyan(v)}')
 
-        logging.log(level, f'{colors.white(";")} '.join(kwargs_info))
+        logging.log(__level__, f'{colors.white(";")} '.join(kwargs_info))
 
     def info(self, __module__: str, __content__, **kwargs):
-        level = 'info'
-        self.__logging(level, f'[{__module__}] {__content__}', **kwargs)
-        return self.__sls(__module__, level, __content__, **kwargs)
+        __level__ = 'info'
+        self.__logging(__level__, f'[{__module__}] {__content__}', **kwargs)
+        return self.__sls(__module__, __level__, __content__, **kwargs)
 
     def warning(self, __module__: str, __content__, **kwargs):
-        level = 'warning'
-        self.__logging(level, __content__, **kwargs)
-        return self.__sls(__module__, level, __content__, **kwargs)
+        __level__ = 'warning'
+        self.__logging(__level__, __content__, **kwargs)
+        return self.__sls(__module__, __level__, __content__, **kwargs)
 
     def debug(self, __module__: str, __content__, **kwargs):
-        level = 'debug'
-        self.__logging(level, __content__, **kwargs)
-        return self.__sls(__module__, level, __content__, **kwargs)
+        __level__ = 'debug'
+        self.__logging(__level__, __content__, **kwargs)
+        return self.__sls(__module__, __level__, __content__, **kwargs)
 
     def error(self, __module__: str, __content__, **kwargs):
-        level = 'error'
-        self.__logging(level, __content__, **kwargs)
-        return self.__sls(__module__, level, __content__, **kwargs)
-
-    def exception(self, __module__: str, __content__, **kwargs):
-        """错误堆栈"""
-        level = 'exception'
-        logging.exception(__content__)
-        for k, v in kwargs.items():
-            logging.exception(logging.INFO, f'{k} = {v}')
-        return self.__sls(__module__, level, __content__, **kwargs)
+        __level__ = 'error'
+        self.__logging(__level__, __content__, **kwargs)
+        return self.__sls(__module__, __level__, __content__, **kwargs)
 
 
 instance = LogSLS()
