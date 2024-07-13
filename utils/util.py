@@ -12,9 +12,8 @@ import platform
 import random
 import string
 import time
-import traceback
 import uuid
-from typing import List, Union, Callable
+from typing import List, Union
 
 import pytz
 
@@ -156,7 +155,6 @@ def timeit(func):
     def new_func(*args, **kwargs):
         _hash = ""  # hash(str(args)+str(kwargs))
         print_str = f'===start {func.__name__} {_hash} , kwargs:{kwargs}.'
-        print(print_str)
         logging.info(print_str)
         start = time.time()
 
@@ -164,7 +162,6 @@ def timeit(func):
 
         ms = 1000 * (time.time() - start)
         print_str = f'===end {func.__name__} {_hash} {ms}ms, kwargs:{kwargs}.'
-        print(print_str)
         logging.info(print_str)
 
         return ret
@@ -192,43 +189,6 @@ def remove_dir(path):
     path = os.path.realpath(path)
     if os.path.exists(path):
         os.remove(path)
-
-
-def catch_error(ignore_errors: List[type(Exception)] = None, raise_error: bool = True,
-                callback: Callable = None, args: Union[list, tuple] = None, kwargs: dict = None):
-    """
-    异常捕获
-    :param ignore_errors: 忽略的异常类型
-    :param raise_error: 是否推出异常
-    :param callback: 回调函数
-    :param args: 回调函数参数
-    :param kwargs: 回调函数参数
-    :return:
-    """
-    ignore_errors = ignore_errors or []
-    args = args or []
-    kwargs = kwargs or {}
-
-    def do(func):
-        @functools.wraps(func)
-        def decorated_func(*attr, **options):
-            res = None
-            try:
-                res = func(*attr, **options)
-            except (*ignore_errors,):
-                pass
-            except Exception as e:
-                logging.error(f'{func.__name__}: {str(e)}')
-                logging.exception(traceback.format_exc())
-                if callback is not None:
-                    callback(*args, **kwargs)
-                if raise_error:
-                    raise e
-            return res
-
-        return decorated_func
-
-    return do
 
 
 def is_linux():
