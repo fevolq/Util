@@ -1,18 +1,24 @@
 #!-*- coding:utf-8 -*-
-# CreateTime: 2024/7/13 14:27
-# FileName: 装饰器
-import functools
-import inspect
-import logging
+# FileName:
+
+import threading
 import time
 import traceback
 from functools import wraps
-from typing import List, Callable, Union
+from typing import List, Union, Callable
+import inspect
 
 from utils import log_sls
 
 
 def func_log(__module__, __content__: str = '', ignore_args: List = None):
+    """
+    函数启动与终止的日志
+    :param __module__:
+    :param __content__:
+    :param ignore_args:
+    :return:
+    """
     ignore_args = ignore_args or []
 
     def do(func):
@@ -38,10 +44,74 @@ def func_log(__module__, __content__: str = '', ignore_args: List = None):
     return do
 
 
-def catch_error(ignore_errors: List[type(Exception)] = None, raise_error: bool = True,
-                callback: Callable = None, args: Union[list, tuple] = None, kwargs: dict = None):
+def retry(__module__, __content__: str = '', *, ignore_except_list: List = None, max_times: int = 0, interval: int = 0):
+    """
+    重试
+    :param __module__:
+    :param __content__:
+    :param ignore_except_list: 不重试的异常，直接推出异常
+    :param max_times: 最大重试次数
+    :param interval: 重试间隔（min）
+    :return:
+    """
+    ignore_except_list = ignore_except_list or []
+    max_times = max(max_times, 0)
+    interval = max(interval, 0)
+
+    def do(func):
+        content = __content__ or func.__name__
+
+        @wraps(func)
+        def decorated_func(*args, **kwargs):
+            res = None
+            times = 0
+            while times <= max_times:
+                try:
+                    res = func(*args, **kwargs)
+                    break
+                except (*ignore_except_list,):
+                    raise
+                except Exception:
+                    if times >= max_times:
+                        raise
+                times += 1
+                time.sleep(interval * 60)
+                log_sls.info(__module__, f'开始重试：{content}', times=times)
+
+            return res
+
+        return decorated_func
+
+    return do
+
+
+def thread_lock(lock: Union[threading.Lock, threading.RLock]):
+    """
+    线程锁
+    :param lock:
+    :return:
+    """
+
+    def decorator(func):
+        def locked_func(*args, **kwargs):
+            with lock:
+                return func(*args, **kwargs)
+
+        return locked_func
+
+    return decorator
+
+
+def catch_error(
+        __module__, __content__: str = '', *,
+        ignore_errors: List[type(Exception)] = None,
+        raise_error: bool = True,
+        callback: Callable = None, args: Union[list, tuple] = None, kwargs: dict = None,
+):
     """
     异常捕获
+    :param __module__:
+    :param __content__:
     :param ignore_errors: 忽略的异常类型
     :param raise_error: 是否推出异常
     :param callback: 回调函数
@@ -54,7 +124,7 @@ def catch_error(ignore_errors: List[type(Exception)] = None, raise_error: bool =
     kwargs = kwargs or {}
 
     def do(func):
-        @functools.wraps(func)
+        @wraps(func)
         def decorated_func(*attr, **options):
             res = None
             try:
@@ -62,9 +132,8 @@ def catch_error(ignore_errors: List[type(Exception)] = None, raise_error: bool =
             except (*ignore_errors,):
                 pass
             except Exception as e:
-                # logging.error(f'{func.__name__}: {str(e)}')
-                # logging.exception(traceback.format_exc())
-                log_sls.error('decorators', '出现未捕获的异常', func=func.__name__, e=str(e), exc=traceback.format_exc())
+                log_sls.error(__module__, __content__, func=func.__name__,
+                              e=str(e), exc=traceback.format_exc(), )
                 if callback is not None:
                     callback(*args, **kwargs)
                 if raise_error:

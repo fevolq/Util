@@ -98,6 +98,11 @@ class LogSLS:
 
         logging.log(__level__, f'{colors.white(";")} '.join(kwargs_info))
 
+    def debug(self, __module__: str, __content__, **kwargs):
+        __level__ = 'debug'
+        self.__logging(__level__, f'[{__module__}] {__content__}', **kwargs)
+        return self.__sls(__module__, __level__, __content__, **kwargs)
+
     def info(self, __module__: str, __content__, **kwargs):
         __level__ = 'info'
         self.__logging(__level__, f'[{__module__}] {__content__}', **kwargs)
@@ -105,17 +110,12 @@ class LogSLS:
 
     def warning(self, __module__: str, __content__, **kwargs):
         __level__ = 'warning'
-        self.__logging(__level__, __content__, **kwargs)
-        return self.__sls(__module__, __level__, __content__, **kwargs)
-
-    def debug(self, __module__: str, __content__, **kwargs):
-        __level__ = 'debug'
-        self.__logging(__level__, __content__, **kwargs)
+        self.__logging(__level__, f'[{__module__}] {__content__}', **kwargs)
         return self.__sls(__module__, __level__, __content__, **kwargs)
 
     def error(self, __module__: str, __content__, **kwargs):
         __level__ = 'error'
-        self.__logging(__level__, __content__, **kwargs)
+        self.__logging(__level__, f'[{__module__}] {__content__}', **kwargs)
         return self.__sls(__module__, __level__, __content__, **kwargs)
 
 
