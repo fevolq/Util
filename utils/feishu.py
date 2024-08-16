@@ -14,8 +14,6 @@ def robot_text(url: str, text: str, *, title: str = None, href: List[dict] = Non
     :param at: @用户的user_id
     :return:
     """
-    assert url, '缺少 url'
-
     content = []
 
     assert isinstance(text, str), '文本内容 必须为字符串'
@@ -68,8 +66,6 @@ def robot_text_v2(url: str, content: [List[dict]], *, title: str = None):
     :param title: 标题
     :return:
     """
-    assert url, '缺少 url'
-
     resp = requests.post(
         url,
         json={
@@ -99,8 +95,6 @@ def robot_template(url: str, template_id: str, version: str, variable: dict):
     :param variable: 参数
     :return:
     """
-    assert url, '缺少 url'
-
     data = {
         "msg_type": "interactive",
         "card": {
@@ -112,8 +106,43 @@ def robot_template(url: str, template_id: str, version: str, variable: dict):
             }
         }
     }
-    resp = requests.post(
-        url,
-        json=data
-    )
+    resp = requests.post(url, json=data)
+    return resp
+
+
+def app(data, *, app_id, app_secret, msg_type='interactive', receive_id_type='union_id', receive_id):
+    """
+    飞书自建应用消息
+    :param data: 数据。{"type": "template", "data": {"template_id": ..., "template_version_name": ..., }}
+    :param app_id:
+    :param app_secret:
+    :param msg_type:
+    :param receive_id_type:
+    :param receive_id:
+    :return:
+    """
+
+    def get_token():
+        token_url = 'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal'
+        token_headers = {'Content-Type': 'application/json; charset=utf-8'}
+        token_params = {
+            'app_id': app_id,
+            'app_secret': app_secret,
+        }
+        token_resp = requests.post(token_url, json=token_params, headers=token_headers)
+        return token_resp.json()
+
+    token = get_token()
+
+    url = f'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type={receive_id_type}'
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token['tenant_access_token'],
+    }
+    params = {
+        "receive_id": receive_id,
+        "msg_type": msg_type,
+        "content": json.dumps(data, ensure_ascii=False),
+    }
+    resp = requests.post(url, data=json.dumps(params), headers=headers)
     return resp
