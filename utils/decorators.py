@@ -11,7 +11,7 @@ import inspect
 from utils import log_sls
 
 
-def func_log(__module__, __content__: str = '', ignore_args: List = None):
+def func_log(__module__, __content__: str = '', *, ignore_args: List = None):
     """
     函数启动与终止的日志
     :param __module__:
@@ -32,11 +32,12 @@ def func_log(__module__, __content__: str = '', ignore_args: List = None):
             bound_args = sig.bind(*args, **kwargs).arguments  # 将参数名与 *args 和 **kwargs 中的值关联起来
             all_args = {k: v for k, v in bound_args.items() if k in params and k not in ignore_args}  # 转换为字典形式
 
-            log_sls.info(__module__, f'开始：{content}', **all_args)
+            log_sls.info(__module__, f'开始：{content}', func_id=id(sig), **all_args)
             start = time.time()
             res = func(*args, **kwargs)
             end = time.time()
-            log_sls.info(__module__, f'结束：{content}', func_spent=f'{round(end - start, 2)} s', **all_args)
+            log_sls.info(__module__, f'结束：{content}',
+                         func_id=id(sig), func_spent=f'{round(end - start, 2)} s', **all_args)
             return res
 
         return decorated_func

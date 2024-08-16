@@ -9,10 +9,13 @@ log结构化。
 3. 不包含logging初始化，若需要可参考__main__中的定义
 """
 import datetime
+import inspect
 import json
 import logging
 import os
+import threading
 import time
+from functools import wraps
 from typing import Union
 
 import pytz
@@ -32,11 +35,15 @@ TZ = 'Asia/Shanghai'
 
 class LogSLS:
     __project = 'Util'  # 当前项目。每个项目应该唯一，数据会存储至对应的集合中。
+    __lock = threading.Lock()
     _instance = None
+    _save_instance: thread_func.ThreadQueue = thread_func.ThreadQueue('log_sls')
 
     def __new__(cls):
-        if not cls._instance:
-            cls._instance = super().__new__(cls)
+        if cls._instance is None:
+            with cls.__lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
         return cls._instance
 
     def __repr__(self):
@@ -57,6 +64,8 @@ class LogSLS:
             'timestamp': time.time(),
             'pid': os.getpid(),  # 当前进程id
             'ppid': os.getppid(),  # 父进程id
+            'filename': kwargs.pop('__filename__'),  # 文件路径
+            'lineno': kwargs.pop('__lineno__'),  # 行号
         }
 
         # 日志主体内容，及其他自定义字段内容
@@ -83,7 +92,32 @@ class LogSLS:
             if LOG_SERVER:
                 requests.post(f'{LOG_SERVER}/log/submit', json={'project': cls.__project, 'doc': doc})
 
-        thread_func.submit(request, use_pool=False)
+        thread_func.submit(cls._save_instance, request)
+
+    @staticmethod
+    def trace(func):
+        """
+        函数调用堆栈信息，会更新到kwargs参数中
+        :return:
+        """
+
+        @wraps(func)
+        def decorated_func(*args, **kwargs):
+            frame = inspect.currentframe()
+            outer_frame = inspect.getouterframes(frame, 2)
+            caller_frame = outer_frame[1]
+            del outer_frame
+
+            kwargs.update({
+                '__filename__': caller_frame.filename,
+                '__lineno__': caller_frame.lineno,
+            })
+
+            res = func(*args, **kwargs)
+
+            return res
+
+        return decorated_func
 
     @classmethod
     def __logging(cls, __level__, __content__: str, **kwargs):
@@ -92,6 +126,8 @@ class LogSLS:
 
         kwargs_info = [__content__]
         for k, v in kwargs.items():
+            if k.startswith('__') and k.endswith('__'):
+                continue
             if not isinstance(v, (str, int)):
                 v = str(v)
             kwargs_info.append(f'{colors.green(k)}{colors.grey(": ")}{colors.cyan(v)}')
@@ -122,6 +158,7 @@ class LogSLS:
 instance = LogSLS()
 
 
+@LogSLS.trace
 def info(__module__: str, __content__: str, **kwargs):
     """
 
@@ -133,20 +170,19 @@ def info(__module__: str, __content__: str, **kwargs):
     return instance.info(__module__, __content__, **kwargs)
 
 
+@LogSLS.trace
 def debug(__module__: str, __content__: str, **kwargs):
     return instance.debug(__module__, __content__, **kwargs)
 
 
+@LogSLS.trace
 def warning(__module__: str, __content__: str, **kwargs):
     return instance.warning(__module__, __content__, **kwargs)
 
 
+@LogSLS.trace
 def error(__module__: str, __content__: str, **kwargs):
     return instance.error(__module__, __content__, **kwargs)
-
-
-def exception(__module__: str, __content__: str, **kwargs):
-    return instance.exception(__module__, __content__, **kwargs)
 
 
 if __name__ == '__main__':

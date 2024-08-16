@@ -6,6 +6,7 @@
 import datetime
 import json
 from decimal import Decimal
+from enum import Enum
 
 
 class MySQLEncoder(json.JSONEncoder):
@@ -35,7 +36,13 @@ class ObjEncoder(json.JSONEncoder):
             return o.decode()
         elif isinstance(o, Decimal):
             return float(o)
-        elif isinstance(o, object):
+        elif isinstance(o, object) and hasattr(o, '__dict__'):
             return o.__dict__
+        elif isinstance(o, Enum):
+            return o.name
+        elif o is Ellipsis:
+            return None
+        elif isinstance(o, set):
+            return list(o)
         else:
             return json.JSONEncoder.default(self, o)
